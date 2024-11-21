@@ -91,6 +91,47 @@ void InitializeAsteroid(entt::registry &registry, float numberOfCircles){
     }
 }
 
+void InitializeAsteroid(entt::registry &registry, float numberOfCircles, Vector2 point){
+    for (int x = 0; x < numberOfCircles; x++) {
+        int fiftyFifty = GetRandomValue(1,2);
+        int willItKillItself = GetRandomValue(1,100);
+        int willSpawnMoreOnDeath = GetRandomValue(1,10);
+        entt::entity asteroid = registry.create();
+        PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
+        pos_comp.position = point;
+        CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
+        circ_comp.radius = GetRandomValue(20, 50);
+        PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
+        ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
+        if(fiftyFifty == 1){
+            phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
+            color_comp.color = BLUE;
+        }
+        if(fiftyFifty == 2){
+            int fiftyFifty2 = GetRandomValue(1,2);
+            if(fiftyFifty2 == 1){ // repel
+                phys_comp.repels = true;
+                phys_comp.velocity = Vector2Scale(getNormalizedMouseDirectionVector(pos_comp.position), 300.0f);
+                color_comp.color = PURPLE;
+            }
+            if(fiftyFifty2 == 2){ // attract
+                phys_comp.attracts = true;
+                phys_comp.velocity = Vector2Scale(Vector2Scale(getNormalizedMouseDirectionVector(pos_comp.position), -1), 300.0f);
+                color_comp.color = YELLOW;
+            }
+        }
+        if(willItKillItself <= 35){
+            SelfDestructComponent& death_comp = registry.emplace<SelfDestructComponent>(asteroid);
+            death_comp.maxLifeTime = GetRandomValue(2,5);
+            std::cout << "someone is flagged for death lol" << std::endl;
+        }
+        if(willSpawnMoreOnDeath == 1){
+            DuplicateOnDeathComponent& dupe_comp = registry.emplace<DuplicateOnDeathComponent>(asteroid);
+            std::cout << "a pink horror of tzeentch has spawned" << std::endl;
+        }
+    }
+}
+
 float getDistanceToAsteroid(Vector2 point, Vector2 circle){
     return sqrt( pow((point.x - circle.x),2) + pow((point.y - circle.y),2) );
 }
@@ -123,22 +164,30 @@ int main() {
         auto allAsteroids = registry.view<PositionComponent, CircleComponent, ColorComponent, PhysicsComponent>();
         auto allDyingAsteroids  = registry.view<SelfDestructComponent>();
         auto allDuplicatingAsteroids = registry.view<DuplicateOnDeathComponent>();
+        auto allDyingDuplicatingAsteroids = registry.view<DuplicateOnDeathComponent, SelfDestructComponent>();
 
         if(counter >= fixedInterval){
             counter = 0;
             InitializeAsteroid(registry, 5);
         }
-
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)){
             Vector2 mousePos = GetMousePosition();
+            for (auto entity1 : allDuplicatingAsteroids){
+                if(IsPointInAsteroid(registry, entity1, mousePos)){
+                    DuplicateOnDeathComponent& dupe_comp = registry.get<DuplicateOnDeathComponent>(entity1);
+                    PositionComponent& pos_comp = registry.get<PositionComponent>(entity1);
+                    dupe_comp.amountToSpawn = GetRandomValue(2,5);
+                    InitializeAsteroid(registry, dupe_comp.amountToSpawn, pos_comp.position);
+                    registry.destroy(entity1);
+                    break;
+                }
+            }            
             for (auto entity : allAsteroids) {
                 if(IsPointInAsteroid(registry, entity, mousePos)){
                     registry.destroy(entity);
                     break;
                 }
             }
-            
-            
         }
         //std::cout << counter << std::endl;
         accumulator += delta_time;
@@ -150,10 +199,18 @@ int main() {
                     registry.destroy(entity);
                 }
             }
-            for (auto entity : allDuplicatingAsteroids){
+            for(auto entity : allDyingDuplicatingAsteroids){
+                SelfDestructComponent& deathTimer = registry.get<SelfDestructComponent>(entity);
                 DuplicateOnDeathComponent& dupe_comp = registry.get<DuplicateOnDeathComponent>(entity);
-                dupe_comp.amountToSpawn = GetRandomValue(2,5);
+                PositionComponent& pos_comp = registry.get<PositionComponent>(entity);
+                deathTimer.lifeTime+=delta_time;
+                if(deathTimer.lifeTime >= deathTimer.maxLifeTime){
+                    dupe_comp.amountToSpawn = GetRandomValue(2,5);
+                    InitializeAsteroid(registry, dupe_comp.amountToSpawn, pos_comp.position);
+                    registry.destroy(entity);
+                }
             }
+            
             for (auto entity : allAsteroids) {
                 PositionComponent& position = registry.get<PositionComponent>(entity);
                 CircleComponent& circle = registry.get<CircleComponent>(entity);
