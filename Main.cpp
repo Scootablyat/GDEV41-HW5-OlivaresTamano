@@ -47,38 +47,23 @@ void InitializeAsteroid(entt::registry &registry, float numberOfCircles){
         int fiftyFifty = GetRandomValue(1,2);
         int willItKillItself = GetRandomValue(1,100);
         entt::entity asteroid = registry.create();
+        PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
+        pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
+        CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
+        circ_comp.radius = GetRandomValue(20, 50);
+        PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
+        phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
+        ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
         if(fiftyFifty == 1){
-            PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
-            pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
-            CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
-            circ_comp.radius = GetRandomValue(20, 50);
-            ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
             color_comp.color = BLUE;
-            PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
-            phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
         }
-
         if(fiftyFifty == 2){
             int fiftyFifty2 = GetRandomValue(1,2);
             if(fiftyFifty2 == 1){
-                PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
-                pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
-                CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
-                circ_comp.radius = GetRandomValue(20, 50);
-                ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
                 color_comp.color = PURPLE;
-                PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
-                phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
             }
             if(fiftyFifty2 == 2){
-                PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
-                pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
-                CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
-                circ_comp.radius = GetRandomValue(20, 50);
-                ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
                 color_comp.color = YELLOW;
-                PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
-                phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
             }
         }
         if(willItKillItself <= 35){
