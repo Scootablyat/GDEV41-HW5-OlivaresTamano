@@ -28,7 +28,6 @@ struct PhysicsComponent {
     Vector2 position;
     float mass;
     float inverse_mass;
-
 };
 
 float RandomDirection(){
@@ -51,6 +50,20 @@ void InitializeAsteroid(entt::registry &registry, float numberOfCircles){
     }
 }
 
+float getDistanceToAsteroid(Vector2 point, Vector2 circle){
+    return sqrt( pow((point.x - circle.x),2) + pow((point.y - circle.y),2) );
+}
+
+bool IsPointInAsteroid(entt::registry &registry, entt::entity asteroid, Vector2 point){
+    CircleComponent& circle_comp = registry.get<CircleComponent>(asteroid);
+    PositionComponent& position_comp = registry.get<PositionComponent>(asteroid);
+    float distance = getDistanceToAsteroid(point, position_comp.position);
+    if(distance < circle_comp.radius){
+        return true;
+    }
+    return false;
+}
+
 int main() {
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OlivaresTamano - Homework 5");
     SetTargetFPS(FPS);
@@ -66,17 +79,27 @@ int main() {
     while(!WindowShouldClose()) {
         float delta_time = GetFrameTime();
         counter += delta_time;
+        auto allAsteroids = registry.view<PositionComponent, CircleComponent, ColorComponent, PhysicsComponent>();
 
         if(counter >= fixedInterval){
             counter = 0;
             InitializeAsteroid(registry, 5);
         }
-        std::cout << counter << std::endl;
 
-        auto move_asteroids = registry.view<CircleComponent>();
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)){
+            Vector2 mousePos = GetMousePosition();
+            for (auto entity : allAsteroids) {
+                if(IsPointInAsteroid(registry, entity, mousePos)){
+                    registry.destroy(entity);
+                    break;
+                }
+            }
+            
+        }
+        //std::cout << counter << std::endl;
         accumulator += delta_time;
         while (accumulator >= TIMESTEP){ // Physics Step
-            for (auto entity : move_asteroids) {
+            for (auto entity : allAsteroids) {
                 PositionComponent& position = registry.get<PositionComponent>(entity);
                 CircleComponent& circle = registry.get<CircleComponent>(entity);
                 PhysicsComponent& physics = registry.get<PhysicsComponent>(entity);
