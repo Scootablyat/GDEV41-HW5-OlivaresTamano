@@ -25,9 +25,8 @@ struct CircleComponent {
 
 struct PhysicsComponent {
     Vector2 velocity;
-    Vector2 position;
-    float mass;
-    float inverse_mass;
+    bool repels = false;
+    bool attracts = false;
 };
 
 struct SelfDestructComponent{
@@ -42,6 +41,11 @@ float RandomDirection(){
     return x * 2.0f - 1.0f;
 }
 
+Vector2 getNormalizedMouseDirectionVector(Vector2 point){
+    Vector2 mousePos = GetMousePosition();
+    return Vector2Normalize(Vector2Subtract(point, mousePos));
+}
+
 void InitializeAsteroid(entt::registry &registry, float numberOfCircles){
     for (int x = 0; x < numberOfCircles; x++) {
         int fiftyFifty = GetRandomValue(1,2);
@@ -52,17 +56,21 @@ void InitializeAsteroid(entt::registry &registry, float numberOfCircles){
         CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
         circ_comp.radius = GetRandomValue(20, 50);
         PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
-        phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
         ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
         if(fiftyFifty == 1){
+            phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
             color_comp.color = BLUE;
         }
         if(fiftyFifty == 2){
             int fiftyFifty2 = GetRandomValue(1,2);
-            if(fiftyFifty2 == 1){
+            if(fiftyFifty2 == 1){ // repel
+                phys_comp.repels = true;
+                phys_comp.velocity = Vector2Scale(getNormalizedMouseDirectionVector(pos_comp.position), 300.0f);
                 color_comp.color = PURPLE;
             }
-            if(fiftyFifty2 == 2){
+            if(fiftyFifty2 == 2){ // attract
+                phys_comp.attracts = true;
+                phys_comp.velocity = Vector2Scale(Vector2Scale(getNormalizedMouseDirectionVector(pos_comp.position), -1), 300.0f);
                 color_comp.color = YELLOW;
             }
         }
@@ -153,9 +161,20 @@ int main() {
                     position.position.y = WINDOW_HEIGHT - circle.radius;
                     physics.velocity.y *= -1;
                 }
+                if(physics.repels == true){
+                    physics.velocity = Vector2Scale(getNormalizedMouseDirectionVector(position.position), 300.0f);
+                    position.position = Vector2Add(position.position, Vector2Scale(physics.velocity, TIMESTEP)); 
+                }
+                if(physics.attracts == true){
+                    physics.velocity = Vector2Scale(Vector2Scale(getNormalizedMouseDirectionVector(position.position), -1), 300.0f);
+                    position.position = Vector2Add(position.position, Vector2Scale(physics.velocity, TIMESTEP)); 
+                }
+                else{
+                    position.position = Vector2Add(position.position, Vector2Scale(physics.velocity, TIMESTEP)); 
+                }
                 
-                position.position = Vector2Add(position.position, Vector2Scale(physics.velocity, TIMESTEP));
             }
+            
             accumulator -= TIMESTEP;
         }
 
