@@ -34,6 +34,10 @@ struct SelfDestructComponent{
     float maxLifeTime;
 };
 
+struct DuplicateOnDeathComponent{
+    int amountToSpawn;
+};
+
 
 float RandomDirection(){
     float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
@@ -50,6 +54,7 @@ void InitializeAsteroid(entt::registry &registry, float numberOfCircles){
     for (int x = 0; x < numberOfCircles; x++) {
         int fiftyFifty = GetRandomValue(1,2);
         int willItKillItself = GetRandomValue(1,100);
+        int willSpawnMoreOnDeath = GetRandomValue(1,10);
         entt::entity asteroid = registry.create();
         PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
         pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
@@ -78,6 +83,10 @@ void InitializeAsteroid(entt::registry &registry, float numberOfCircles){
             SelfDestructComponent& death_comp = registry.emplace<SelfDestructComponent>(asteroid);
             death_comp.maxLifeTime = GetRandomValue(2,5);
             std::cout << "someone is flagged for death lol" << std::endl;
+        }
+        if(willSpawnMoreOnDeath == 1){
+            DuplicateOnDeathComponent& dupe_comp = registry.emplace<DuplicateOnDeathComponent>(asteroid);
+            std::cout << "a pink horror of tzeentch has spawned" << std::endl;
         }
     }
 }
@@ -113,6 +122,7 @@ int main() {
         counter += delta_time;
         auto allAsteroids = registry.view<PositionComponent, CircleComponent, ColorComponent, PhysicsComponent>();
         auto allDyingAsteroids  = registry.view<SelfDestructComponent>();
+        auto allDuplicatingAsteroids = registry.view<DuplicateOnDeathComponent>();
 
         if(counter >= fixedInterval){
             counter = 0;
@@ -128,6 +138,7 @@ int main() {
                 }
             }
             
+            
         }
         //std::cout << counter << std::endl;
         accumulator += delta_time;
@@ -138,6 +149,10 @@ int main() {
                 if(deathTimer.lifeTime >= deathTimer.maxLifeTime){
                     registry.destroy(entity);
                 }
+            }
+            for (auto entity : allDuplicatingAsteroids){
+                DuplicateOnDeathComponent& dupe_comp = registry.get<DuplicateOnDeathComponent>(entity);
+                dupe_comp.amountToSpawn = GetRandomValue(2,5);
             }
             for (auto entity : allAsteroids) {
                 PositionComponent& position = registry.get<PositionComponent>(entity);
