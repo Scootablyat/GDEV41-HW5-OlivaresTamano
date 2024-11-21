@@ -30,6 +30,12 @@ struct PhysicsComponent {
     float inverse_mass;
 };
 
+struct SelfDestructComponent{
+    float lifeTime;
+    float maxLifeTime;
+};
+
+
 float RandomDirection(){
     float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     // Make it [-1, 1]
@@ -38,15 +44,48 @@ float RandomDirection(){
 
 void InitializeAsteroid(entt::registry &registry, float numberOfCircles){
     for (int x = 0; x < numberOfCircles; x++) {
+        int fiftyFifty = GetRandomValue(1,2);
+        int willItKillItself = GetRandomValue(1,100);
         entt::entity asteroid = registry.create();
-        PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
-        pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
-        CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
-        circ_comp.radius = GetRandomValue(20, 50);
-        ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
-        color_comp.color = BLUE;
-        PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
-        phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
+        if(fiftyFifty == 1){
+            PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
+            pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
+            CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
+            circ_comp.radius = GetRandomValue(20, 50);
+            ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
+            color_comp.color = BLUE;
+            PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
+            phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
+        }
+
+        if(fiftyFifty == 2){
+            int fiftyFifty2 = GetRandomValue(1,2);
+            if(fiftyFifty2 == 1){
+                PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
+                pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
+                CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
+                circ_comp.radius = GetRandomValue(20, 50);
+                ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
+                color_comp.color = PURPLE;
+                PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
+                phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
+            }
+            if(fiftyFifty2 == 2){
+                PositionComponent& pos_comp = registry.emplace<PositionComponent>(asteroid);
+                pos_comp.position = {static_cast<float>(GetRandomValue(0, WINDOW_WIDTH)), static_cast< float >(GetRandomValue(0, WINDOW_HEIGHT))};
+                CircleComponent& circ_comp = registry.emplace<CircleComponent>(asteroid);
+                circ_comp.radius = GetRandomValue(20, 50);
+                ColorComponent& color_comp = registry.emplace<ColorComponent>(asteroid);
+                color_comp.color = YELLOW;
+                PhysicsComponent& phys_comp = registry.emplace<PhysicsComponent>(asteroid);
+                phys_comp.velocity = {500.0f * RandomDirection(), 500.0f * RandomDirection()};
+            }
+        }
+        if(willItKillItself <= 35){
+            SelfDestructComponent& death_comp = registry.emplace<SelfDestructComponent>(asteroid);
+            death_comp.maxLifeTime = GetRandomValue(2,5);
+            std::cout << "someone is flagged for death lol" << std::endl;
+        }
     }
 }
 
@@ -80,6 +119,7 @@ int main() {
         float delta_time = GetFrameTime();
         counter += delta_time;
         auto allAsteroids = registry.view<PositionComponent, CircleComponent, ColorComponent, PhysicsComponent>();
+        auto allDyingAsteroids  = registry.view<SelfDestructComponent>();
 
         if(counter >= fixedInterval){
             counter = 0;
@@ -98,12 +138,20 @@ int main() {
         }
         //std::cout << counter << std::endl;
         accumulator += delta_time;
-        while (accumulator >= TIMESTEP){ // Physics Step
+        while (accumulator >= TIMESTEP){ // Physics Step/*
+            for (auto entity : allDyingAsteroids){
+                SelfDestructComponent& deathTimer = registry.get<SelfDestructComponent>(entity);
+                deathTimer.lifeTime+=delta_time;
+                if(deathTimer.lifeTime >= deathTimer.maxLifeTime){
+                    registry.destroy(entity);
+                }
+            }
             for (auto entity : allAsteroids) {
                 PositionComponent& position = registry.get<PositionComponent>(entity);
                 CircleComponent& circle = registry.get<CircleComponent>(entity);
                 PhysicsComponent& physics = registry.get<PhysicsComponent>(entity);
-
+                
+                
                 if (position.position.x - circle.radius <= 0){
                     position.position.x = circle.radius;
                     physics.velocity.x *= -1;
@@ -120,6 +168,7 @@ int main() {
                     position.position.y = WINDOW_HEIGHT - circle.radius;
                     physics.velocity.y *= -1;
                 }
+                
                 position.position = Vector2Add(position.position, Vector2Scale(physics.velocity, TIMESTEP));
             }
             accumulator -= TIMESTEP;
